@@ -118,7 +118,7 @@ TransferToken TransferManager::uploadToBuffer(const ManagedBuffer &dstBuffer, co
                    &copyRegion);
 
     // 提交并传递需要释放的staging buffer
-    TransferToken token = endOneTimeCommands(cmd, TransferQueueType::Graphics, {stagingIndex});
+    TransferToken token = endOneTimeCommands(cmd, TransferQueueType::Transfer, {stagingIndex});
 
     cleanupUnusedStagingBuffers();
     return token;
@@ -262,8 +262,8 @@ TransferToken TransferManager::transitionImageLayout(const ManagedImage &image, 
     BarrierInfo barrierInfo = getBarrierInfo(oldLayout, newLayout);
 
     const vk::PipelineStageFlags transferOnlyStages = vk::PipelineStageFlagBits::eTopOfPipe |
-                                                     vk::PipelineStageFlagBits::eBottomOfPipe |
-                                                     vk::PipelineStageFlagBits::eTransfer;
+                                                      vk::PipelineStageFlagBits::eBottomOfPipe |
+                                                      vk::PipelineStageFlagBits::eTransfer;
     const bool requiresGraphicsQueue =
         useGraphicsQueue || ((barrierInfo.srcStage | barrierInfo.dstStage) & ~transferOnlyStages);
 
