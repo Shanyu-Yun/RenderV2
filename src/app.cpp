@@ -86,7 +86,6 @@ int main(int argc, char *argv[])
     renderer::RenderPassDefinition mainPass{};
     mainPass.name = "MainPass";
     mainPass.shaderPrefix = "car";
-    mainPass.renderExtent = context.getSwapchainExtent();
 
     renderer::RenderAttachment colorAttachment{};
     colorAttachment.type = renderer::AttachmentType::Color;
@@ -225,13 +224,28 @@ int main(int argc, char *argv[])
     poolInfo.queueFamilyIndex = graphicsQueueFamily;
     vk::CommandPool commandPool = device.createCommandPool(poolInfo);
 
-    const auto swapchainImages = context.getSwapchainImages();
-    std::vector<vk::CommandBuffer> commandBuffers(swapchainImages.size());
-    vk::CommandBufferAllocateInfo allocInfo{};
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
-    commandBuffers = device.allocateCommandBuffers(allocInfo);
+    std::vector<vk::CommandBuffer> commandBuffers;
+
+    auto allocateCommandBuffers = [&]() {
+        if (!commandBuffers.empty())
+        {
+            device.freeCommandBuffers(commandPool, commandBuffers);
+        }
+
+        const auto swapchainImages = context.getSwapchainImages();
+        commandBuffers.resize(swapchainImages.size());
+
+        vk::CommandBufferAllocateInfo allocInfo{};
+        allocInfo.commandPool = commandPool;
+        allocInfo.level = vk::CommandBufferLevel::ePrimary;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+        if (allocInfo.commandBufferCount > 0)
+        {
+            commandBuffers = device.allocateCommandBuffers(allocInfo);
+        }
+    };
+
+    allocateCommandBuffers();
 
     const size_t maxFramesInFlight = std::min<size_t>(rendererConfig.frameDefinition.framesInFlight, commandBuffers.size());
     std::vector<vk::Semaphore> imageAvailableSemaphores(maxFramesInFlight);
@@ -247,12 +261,35 @@ int main(int argc, char *argv[])
         inFlightFences[i] = device.createFence(fenceInfo);
     }
 
+    auto recreateSwapchainResources = [&]() {
+        device.waitIdle();
+
+        auto windowSize = vkRenderWindowHandle->size();
+        if (windowSize.width() == 0 || windowSize.height() == 0)
+        {
+            return false;
+        }
+
+        renderer.onResize(
+            {static_cast<uint32_t>(windowSize.width()), static_cast<uint32_t>(windowSize.height())});
+        allocateCommandBuffers();
+        return true;
+    };
+
     size_t currentFrame = 0;
     auto drawFrame = [&]() {
         device.waitForFences(inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 
         auto acquired = device.acquireNextImageKHR(context.getSwapchain(), std::numeric_limits<uint64_t>::max(),
                                                    imageAvailableSemaphores[currentFrame], {});
+        if (acquired.result == vk::Result::eErrorOutOfDateKHR)
+        {
+            if (!recreateSwapchainResources())
+            {
+                return;
+            }
+            return;
+        }
         if (acquired.result != vk::Result::eSuccess && acquired.result != vk::Result::eSuboptimalKHR)
         {
             return;
@@ -290,7 +327,12 @@ int main(int argc, char *argv[])
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapchains;
         presentInfo.pImageIndices = &imageIndex;
-        presentQueue.presentKHR(presentInfo);
+        auto presentResult = presentQueue.presentKHR(presentInfo);
+        if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR ||
+            presentResult == vk::Result::eErrorIncompatibleDisplayKHR)
+        {
+            recreateSwapchainResources();
+        }
 
         currentFrame = (currentFrame + 1) % maxFramesInFlight;
     };
@@ -322,8 +364,8 @@ int main(int argc, char *argv[])
         {
             auto writer =
                 vkcore::DescriptorSetWriter::begin(device, ctx.frameResources.descriptorSchemas[0], cameraSet);
-            writer.writeBuffer("CameraData", ctx.frameResources.cameraBuffer)
-                .writeBuffer("LightData", ctx.frameResources.lightBuffer)
+            writer.writeBuffer("uCamera", ctx.frameResources.cameraBuffer)
+                .writeBuffer("uLight", ctx.frameResources.lightBuffer)
                 .update();
         }
 
