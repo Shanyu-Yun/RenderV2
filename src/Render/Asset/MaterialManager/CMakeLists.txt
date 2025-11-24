@@ -39,7 +39,8 @@ target_include_directories(MaterialManager
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/private
 )
-
+find_package(glm REQUIRED)
+find_package(nlohmann_json REQUIRED)
 # 链接VkCore以便访问其头文件
 target_link_libraries(MaterialManager
     PUBLIC
