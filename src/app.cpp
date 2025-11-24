@@ -8,6 +8,7 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
@@ -21,6 +22,11 @@ int main(int argc, char *argv[])
     VkRenderWindow *vkRenderWindowHandle = mainWindow.getVkRenderWindowHandle();
     auto winId = vkRenderWindowHandle->winId();
     renderer::EngineServices &services = renderer::EngineServices::instance();
+
+    const std::filesystem::path projectRoot = "E:/Github_repo/RenderV2";
+    const std::filesystem::path assetsRoot = projectRoot / "assets";
+    const std::filesystem::path carAssetRoot = assetsRoot / "car";
+    const std::filesystem::path shaderRoot = assetsRoot / "shaders/spv";
 
     vkcore::InstanceConfig instanceConfig;
     vkcore::DeviceConfig deviceConfig;
@@ -39,12 +45,14 @@ int main(int argc, char *argv[])
     auto &scene = services.initializeScene();
 
     renderer::RendererConfig rendererConfig{};
-    rendererConfig.globalResources.meshFiles.push_back("assets/car/car.obj");
-    rendererConfig.globalResources.textureFiles.push_back("assets/car/texture_pbr_20250901.png");
-    rendererConfig.globalResources.textureFiles.push_back("assets/car/texture_pbr_20250901_metallic.png");
-    rendererConfig.globalResources.textureFiles.push_back("assets/car/texture_pbr_20250901_roughness.png");
-    rendererConfig.globalResources.textureFiles.push_back("assets/car/texture_pbr_20250901_normal.png");
-    rendererConfig.globalResources.shaders.push_back({"assets/shaders/spv", "car", false});
+    rendererConfig.globalResources.meshFiles.push_back((carAssetRoot / "car.obj").string());
+    rendererConfig.globalResources.textureFiles.push_back((carAssetRoot / "texture_pbr_20250901.png").string());
+    rendererConfig.globalResources.textureFiles.push_back(
+        (carAssetRoot / "texture_pbr_20250901_metallic.png").string());
+    rendererConfig.globalResources.textureFiles.push_back(
+        (carAssetRoot / "texture_pbr_20250901_roughness.png").string());
+    rendererConfig.globalResources.textureFiles.push_back((carAssetRoot / "texture_pbr_20250901_normal.png").string());
+    rendererConfig.globalResources.shaders.push_back({shaderRoot.string(), "car", false});
     rendererConfig.frameDefinition.shaderPrefix = "car";
     rendererConfig.swapchainAttachmentName = "Swapchain";
 
@@ -79,8 +87,8 @@ int main(int argc, char *argv[])
     light.direction = glm::normalize(glm::vec3{-1.0f, -1.0f, -1.0f});
     scene.createLightNode(light);
 
-    auto meshId = resourceManager.loadMesh("assets/car/car.obj");
-    auto materialId = materialManager.loadMaterialFromJson("assets/car/car.json");
+    auto meshId = resourceManager.loadMesh((carAssetRoot / "car.obj").string());
+    auto materialId = materialManager.loadMaterialFromJson((carAssetRoot / "car.json").string());
     asset::RenderableComponent carRenderable{meshId, materialId, true};
     scene.createRenderableNode(carRenderable);
 
@@ -172,7 +180,7 @@ int main(int argc, char *argv[])
     auto carMaterial = materialManager.getMaterial(materialId);
     GPUTexture baseColor = uploadTexture(carMaterial && !carMaterial->textures.baseColor.empty()
                                              ? carMaterial->textures.baseColor
-                                             : std::string("assets/car/texture_pbr_20250901.png"));
+                                             : (carAssetRoot / "texture_pbr_20250901.png").string());
 
     renderer.registerPassCallback("MainPass", [&](const renderer::RenderPassDefinition &,
                                                   const renderer::PassDrawContext &ctx) {
