@@ -179,7 +179,9 @@ std::string ResourceManager::loadShader(const std::filesystem::path &filepath, s
     reflectDescriptorSetLayouts(spirvCodes, shaderName);
     {
         std::lock_guard<std::mutex> lock(m_shaderCache.mutex);
-        m_shaderCache.loadedShaders.try_emplace(resourceId, std::move(program));
+        // 同时使用资源绝对路径与 shader 前缀作为键，便于 RenderPass 通过前缀查找程序
+        m_shaderCache.loadedShaders.try_emplace(resourceId, program);
+        m_shaderCache.loadedShaders.try_emplace(shaderName, std::move(program));
     }
     return resourceId;
 }
@@ -627,8 +629,13 @@ std::shared_ptr<TextureData> ResourceManager::getTexture(const std::string &name
 shaderProgram ResourceManager::getShaderprogram(const std::string &name)
 {
     std::lock_guard<std::mutex> lock(m_shaderCache.mutex);
-    auto it = m_shaderCache.loadedShaders.find(name);
-    if (it != m_shaderCache.loadedShaders.end())
+    // 优先按传入的前缀查找，其次尝试归一化路径键以兼容旧调用
+    if (auto it = m_shaderCache.loadedShaders.find(name); it != m_shaderCache.loadedShaders.end())
+    {
+        return it->second;
+    }
+    const std::string normalized = normalizeResourcePath(name);
+    if (auto it = m_shaderCache.loadedShaders.find(normalized); it != m_shaderCache.loadedShaders.end())
     {
         return it->second;
     }
