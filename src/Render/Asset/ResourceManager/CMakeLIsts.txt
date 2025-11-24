@@ -1,0 +1,64 @@
+# ===================================
+# ResourceManager 子模块
+# ===================================
+
+# 查找 spirv-reflect 的头文件和库
+find_path(SPIRV_REFLECT_INCLUDE_DIR spirv_reflect.h PATH_SUFFIXES spirv-reflect)
+find_library(SPIRV_REFLECT_LIBRARY NAMES spirv-reflect-static)
+
+if(NOT SPIRV_REFLECT_INCLUDE_DIR OR NOT SPIRV_REFLECT_LIBRARY)
+    message(FATAL_ERROR "spirv-reflect not found. Please install via: vcpkg install spirv-reflect")
+endif()
+
+# 创建 ResourceManager 对象库
+add_library(ResourceManager OBJECT)
+
+# 禁用Qt自动处理
+set_target_properties(ResourceManager PROPERTIES
+    AUTOMOC OFF
+    AUTOUIC OFF
+    AUTORCC OFF
+)
+
+# 收集源文件
+file(GLOB_RECURSE RESOURCE_MANAGER_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/public/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/public/*.h"
+)
+
+file(GLOB_RECURSE RESOURCE_MANAGER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/private/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/private/*.c"
+)
+
+# 添加源文件到目标
+target_sources(ResourceManager
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/public
+        FILES ${RESOURCE_MANAGER_HEADERS}
+    PRIVATE
+        ${RESOURCE_MANAGER_SOURCES}
+)
+
+# 设置包含目录
+target_include_directories(ResourceManager
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+        $<INSTALL_INTERFACE:include/Asset/ResourceManager>
+        ${SPIRV_REFLECT_INCLUDE_DIR}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/private
+)
+
+# 链接VkCore以便访问其头文件
+target_link_libraries(ResourceManager
+    PUBLIC
+        VkCore
+        ${SPIRV_REFLECT_LIBRARY}
+)
+
+# 输出信息
+message(STATUS "ResourceManager module:")
+message(STATUS "  Headers: ${RESOURCE_MANAGER_HEADERS}")
+message(STATUS "  Sources: ${RESOURCE_MANAGER_SOURCES}")

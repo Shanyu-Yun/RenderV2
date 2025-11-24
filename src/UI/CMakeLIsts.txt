@@ -1,0 +1,64 @@
+# ===================================
+# UI 模块 - Qt用户界面
+# ===================================
+
+# 创建UI静态库
+add_library(UI STATIC)
+
+# 启用Qt自动处理（UI模块需要）
+set_target_properties(UI PROPERTIES
+    AUTOMOC ON
+    AUTOUIC ON
+    AUTORCC ON
+)
+
+# 收集源文件
+file(GLOB UI_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
+)
+
+file(GLOB UI_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+)
+
+# 添加源文件
+target_sources(UI PRIVATE
+    ${UI_SOURCES}
+    ${UI_HEADERS}
+)
+
+# 设置包含目录
+target_include_directories(UI 
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include/UI>
+)
+
+# 查找并链接Qt6库
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+
+target_link_libraries(UI 
+    PUBLIC
+        Qt6::Core
+        Qt6::Widgets
+)
+
+# 创建命名空间别名
+add_library(QTRender::UI ALIAS UI)
+
+# 输出信息
+message(STATUS "UI module:")
+message(STATUS "  Headers: ${UI_HEADERS}")
+message(STATUS "  Sources: ${UI_SOURCES}")
+
+# 安装规则（可选）
+install(TARGETS UI
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+install(FILES ${UI_HEADERS}
+    DESTINATION include/UI
+)
