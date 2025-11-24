@@ -114,6 +114,10 @@ vk::UniquePipeline GraphicsPipelineBuilder::build()
     {
         throw std::runtime_error("GraphicsPipelineBuilder requires a shader prefix");
     }
+    if (m_colorFormats.empty())
+    {
+        throw std::runtime_error("GraphicsPipelineBuilder requires at least one color format");
+    }
 
     auto shaderStages = buildShaderStages();
     if (shaderStages.empty())
@@ -158,10 +162,7 @@ vk::UniquePipeline GraphicsPipelineBuilder::build()
     pipelineInfo.setPDepthStencilState(&depthStencilState);
     pipelineInfo.setPColorBlendState(&colorBlendState);
     pipelineInfo.setLayout(pipelineLayout);
-
-    vk::PipelineDynamicStateCreateInfo dynamicStateInfo{};
-    dynamicStateInfo.setDynamicStates(dynamicStates);
-    pipelineInfo.setPDynamicState(&dynamicStateInfo);
+    pipelineInfo.setDynamicState({static_cast<uint32_t>(dynamicStates.size()), dynamicStates.data()});
 
     return m_context->getDevice().createGraphicsPipelineUnique({}, pipelineInfo);
 }
@@ -244,9 +245,8 @@ vk::PipelineMultisampleStateCreateInfo GraphicsPipelineBuilder::buildMultisample
 vk::PipelineDepthStencilStateCreateInfo GraphicsPipelineBuilder::buildDepthStencilState() const
 {
     vk::PipelineDepthStencilStateCreateInfo depth{};
-    const bool hasDepthAttachment = m_depthFormat.has_value();
-    depth.setDepthTestEnable(hasDepthAttachment && m_enableDepthTest);
-    depth.setDepthWriteEnable(hasDepthAttachment && m_enableDepthWrite);
+    depth.setDepthTestEnable(m_enableDepthTest);
+    depth.setDepthWriteEnable(m_enableDepthWrite);
     depth.setDepthCompareOp(m_depthCompareOp);
     depth.setDepthBoundsTestEnable(VK_FALSE);
     depth.setStencilTestEnable(VK_FALSE);

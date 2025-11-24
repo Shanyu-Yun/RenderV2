@@ -1,7 +1,6 @@
 #include "Scene.hpp"
 
 #include <algorithm>
-#include <glm/ext/matrix_clip_space.hpp>
 
 namespace asset
 {
@@ -13,8 +12,7 @@ glm::mat4 Camera::viewMatrix() const
 
 glm::mat4 Camera::projectionMatrix() const
 {
-    // Vulkan 使用 0..1 的深度范围，需采用 ZO 变体生成投影矩阵。
-    return glm::perspectiveRH_ZO(fovY, aspect, nearClip, farClip);
+    return glm::perspective(fovY, aspect, nearClip, farClip);
 }
 
 glm::mat4 TransformComponent::matrix() const
