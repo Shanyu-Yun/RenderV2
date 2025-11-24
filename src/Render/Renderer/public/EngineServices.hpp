@@ -48,7 +48,7 @@ class EngineServices
     template <typename Service, typename... Args> Service &emplaceService(Args &&...args)
     {
         auto holder = std::make_unique<OwningHolder<Service>>(std::make_unique<Service>(std::forward<Args>(args)...));
-        Service *ptr = holder->get();
+        Service *ptr = static_cast<Service *>(holder->get());
         m_services[std::type_index(typeid(Service))] = std::move(holder);
         return *ptr;
     }

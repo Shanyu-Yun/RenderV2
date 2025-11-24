@@ -1,3 +1,4 @@
+#include "Render/Asset/MaterialManager/public/MaterialManager.hpp"
 #include "Render/Asset/ResourceManager/public/ResourceManager.hpp"
 #include "Render/VkCore/public/TransferManager.hpp"
 #include "Render/VkCore/public/VkContext.hpp"
@@ -49,6 +50,14 @@ int main(int argc, char *argv[])
     std::cout << "Default cube mesh vertices count: " << defaultCubeMeshes->at(0).vertices.size() << std::endl;
     std::cout << "Default white texture size: " << defaultWhiteTexture->width << "x" << defaultWhiteTexture->height
               << std::endl;
+    asset::MaterialManager materialManager(resourceManager);
+    auto materialName = materialManager.loadMaterialFromJson("E:\\Github_repo\\RenderV2\\assets\\car\\car.json");
+    std::cout << "Loaded material ID: " << materialName << std::endl;
+    auto material = materialManager.getMaterial(materialName);
+    std::cout << "Material name: " << material->name << std::endl
+              << "Base Color Texture ID: " << material->textures.baseColor << std::endl
+              << "Metallic Texture ID: " << material->textures.metallic << std::endl;
+
     mainWindow.show();
 
     return app.exec();

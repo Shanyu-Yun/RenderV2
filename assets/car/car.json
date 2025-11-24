@@ -1,0 +1,37 @@
+{
+    "name": "Material",
+    "shader": "PBR_Standard",
+    "domain": "Opaque",
+    "textures": {
+        "baseColor": "texture_pbr_20250901.png",
+        "metallic": "texture_pbr_20250901_metallic.png",
+        "roughness": "texture_pbr_20250901_roughness.png",
+        "normal": "texture_pbr_20250901_normal.png",
+        "occlusion": "",
+        "emissive": ""
+    },
+    "factors": {
+        "baseColor": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+        ],
+        "metallic": 1.0,
+        "roughness": 1.0,
+        "emissive": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "normalScale": 1.0
+    },
+    "alpha": {
+        "mode": "Opaque",
+        "cutoff": 0.5,
+        "doubleSided": false
+    },
+    "optical": {
+        "refractionIndex": 1.5
+    }
+}
