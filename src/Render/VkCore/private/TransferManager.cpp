@@ -60,6 +60,17 @@ void TransferManager::cleanup()
             {
                 // Log warning?
             }
+
+            // 释放提交关联的资源
+            for (const auto &sub : resources->activeSubmissions)
+            {
+                for (size_t idx : sub.stagingBuffersToRelease)
+                {
+                    if (idx < resources->stagingBufferPool.size())
+                        resources->stagingBufferPool[idx].inUse = false;
+                }
+                device.freeCommandBuffers(sub.commandPool, sub.cmdBuffer);
+            }
         }
 
         // 销毁所有fences
@@ -88,6 +99,12 @@ TransferToken TransferManager::uploadToBuffer(const ManagedBuffer &dstBuffer, co
     if (!dstBuffer)
         throw std::runtime_error("Destination buffer is invalid");
 
+    const vk::DeviceSize bufferSize = dstBuffer.getSize();
+    if (dstOffset >= bufferSize)
+        throw std::out_of_range("dstOffset exceeds destination buffer size");
+    if (size > bufferSize - dstOffset)
+        throw std::out_of_range("Upload size exceeds destination buffer capacity");
+
     size_t stagingIndex = acquireStagingBuffer(size);
     copyHostToStaging(stagingIndex, data, static_cast<size_t>(size));
 
@@ -101,7 +118,7 @@ TransferToken TransferManager::uploadToBuffer(const ManagedBuffer &dstBuffer, co
                    &copyRegion);
 
     // 提交并传递需要释放的staging buffer
-    TransferToken token = endOneTimeCommands(cmd, TransferQueueType::Transfer, {stagingIndex});
+    TransferToken token = endOneTimeCommands(cmd, TransferQueueType::Graphics, {stagingIndex});
 
     cleanupUnusedStagingBuffers();
     return token;
@@ -117,7 +134,7 @@ TransferToken TransferManager::uploadToImage(const ManagedImage &dstImage, const
     size_t stagingIndex = acquireStagingBuffer(dataSize);
     copyHostToStaging(stagingIndex, data, static_cast<size_t>(dataSize));
 
-    vk::CommandBuffer cmd = beginOneTimeCommands(TransferQueueType::Transfer);
+    vk::CommandBuffer cmd = beginOneTimeCommands(TransferQueueType::Graphics);
 
     // 转换到TransferDst
     BarrierInfo barrierInfo = getBarrierInfo(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
@@ -158,7 +175,7 @@ TransferToken TransferManager::uploadToImage(const ManagedImage &dstImage, const
     barrier.dstAccessMask = barrierInfo.dstAccessMask;
     cmd.pipelineBarrier(barrierInfo.srcStage, barrierInfo.dstStage, {}, nullptr, nullptr, barrier);
 
-    TransferToken token = endOneTimeCommands(cmd, TransferQueueType::Transfer, {stagingIndex});
+    TransferToken token = endOneTimeCommands(cmd, TransferQueueType::Graphics, {stagingIndex});
 
     cleanupUnusedStagingBuffers();
     return token;
@@ -169,6 +186,12 @@ TransferToken TransferManager::copyBuffer(const ManagedBuffer &srcBuffer, const 
 {
     if (!m_ctx)
         throw std::runtime_error("TransferManager is not initialized");
+
+    const vk::DeviceSize dstSize = dstBuffer.getSize();
+    if (dstOffset >= dstSize)
+        throw std::out_of_range("dstOffset exceeds destination buffer size");
+    if (size > dstSize - dstOffset)
+        throw std::out_of_range("Copy size exceeds destination buffer capacity");
 
     vk::CommandBuffer cmd = beginOneTimeCommands(TransferQueueType::Transfer);
     vk::BufferCopy copyRegion{};
@@ -186,7 +209,7 @@ TransferToken TransferManager::copyBufferToImage(const ManagedBuffer &srcBuffer,
     if (!m_ctx)
         throw std::runtime_error("TransferManager is not initialized");
 
-    vk::CommandBuffer cmd = beginOneTimeCommands(TransferQueueType::Transfer);
+    vk::CommandBuffer cmd = beginOneTimeCommands(TransferQueueType::Graphics);
 
     BarrierInfo barrierInfo = getBarrierInfo(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     vk::ImageMemoryBarrier barrier{};
@@ -224,7 +247,7 @@ TransferToken TransferManager::copyBufferToImage(const ManagedBuffer &srcBuffer,
     barrier.dstAccessMask = barrierInfo.dstAccessMask;
     cmd.pipelineBarrier(barrierInfo.srcStage, barrierInfo.dstStage, {}, nullptr, nullptr, barrier);
 
-    return endOneTimeCommands(cmd, TransferQueueType::Transfer);
+    return endOneTimeCommands(cmd, TransferQueueType::Graphics);
 }
 
 TransferToken TransferManager::transitionImageLayout(const ManagedImage &image, vk::ImageLayout oldLayout,
@@ -236,10 +259,16 @@ TransferToken TransferManager::transitionImageLayout(const ManagedImage &image, 
     if (!m_ctx)
         throw std::runtime_error("TransferManager is not initialized");
 
-    vk::CommandBuffer cmd =
-        beginOneTimeCommands(useGraphicsQueue ? TransferQueueType::Graphics : TransferQueueType::Transfer);
-
     BarrierInfo barrierInfo = getBarrierInfo(oldLayout, newLayout);
+
+    const vk::PipelineStageFlags transferOnlyStages = vk::PipelineStageFlagBits::eTopOfPipe |
+                                                     vk::PipelineStageFlagBits::eBottomOfPipe |
+                                                     vk::PipelineStageFlagBits::eTransfer;
+    const bool requiresGraphicsQueue =
+        useGraphicsQueue || ((barrierInfo.srcStage | barrierInfo.dstStage) & ~transferOnlyStages);
+
+    vk::CommandBuffer cmd =
+        beginOneTimeCommands(requiresGraphicsQueue ? TransferQueueType::Graphics : TransferQueueType::Transfer);
 
     vk::ImageMemoryBarrier barrier{};
     barrier.oldLayout = oldLayout;
@@ -256,7 +285,7 @@ TransferToken TransferManager::transitionImageLayout(const ManagedImage &image, 
     barrier.dstAccessMask = barrierInfo.dstAccessMask;
 
     cmd.pipelineBarrier(barrierInfo.srcStage, barrierInfo.dstStage, {}, nullptr, nullptr, barrier);
-    return endOneTimeCommands(cmd, useGraphicsQueue ? TransferQueueType::Graphics : TransferQueueType::Transfer);
+    return endOneTimeCommands(cmd, requiresGraphicsQueue ? TransferQueueType::Graphics : TransferQueueType::Transfer);
 }
 
 TransferToken TransferManager::generateMipmaps(const ManagedImage &image, uint32_t width, uint32_t height,
