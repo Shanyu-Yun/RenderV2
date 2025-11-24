@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
     mainWindow.resize(1280, 720);
     VkRenderWindow *vkRenderWindowHandle = mainWindow.getVkRenderWindowHandle();
     auto winId = vkRenderWindowHandle->winId();
+    mainWindow.show();
     renderer::EngineServices &services = renderer::EngineServices::instance();
 
     const std::filesystem::path projectRoot = findProjectRoot();
@@ -101,8 +102,8 @@ int main(int argc, char *argv[])
 
     // 创建相机、光源和渲染对象
     asset::Camera camera{};
-    camera.position = {0.0f, 1.0f, 5.0f};
-    camera.target = {0.0f, 0.5f, 0.0f};
+    camera.position = {1.0f, 0.0f, 1.0f};
+    camera.target = {-1.0f, 0.0f, -1.0f};
     camera.aspect = static_cast<float>(swapchainConfig.width) / static_cast<float>(swapchainConfig.height);
     auto &cameraNode = scene.createCameraNode(camera);
     scene.setActiveCamera(cameraNode.id);
@@ -249,7 +250,8 @@ int main(int argc, char *argv[])
 
     allocateCommandBuffers();
 
-    const size_t maxFramesInFlight = std::min<size_t>(rendererConfig.frameDefinition.framesInFlight, commandBuffers.size());
+    const size_t maxFramesInFlight =
+        std::min<size_t>(rendererConfig.frameDefinition.framesInFlight, commandBuffers.size());
     std::vector<vk::Semaphore> imageAvailableSemaphores;
     std::vector<vk::Semaphore> renderFinishedSemaphores;
     std::vector<vk::Fence> inFlightFences(maxFramesInFlight);
@@ -293,8 +295,7 @@ int main(int argc, char *argv[])
             return false;
         }
 
-        renderer.onResize(
-            {static_cast<uint32_t>(windowSize.width()), static_cast<uint32_t>(windowSize.height())});
+        renderer.onResize({static_cast<uint32_t>(windowSize.width()), static_cast<uint32_t>(windowSize.height())});
         allocateCommandBuffers();
         recreateSwapchainSyncObjects();
         return true;
@@ -489,8 +490,6 @@ int main(int argc, char *argv[])
         ctx.cmd.bindIndexBuffer(carMesh.indexBuffer.getBuffer(), 0, vk::IndexType::eUint32);
         ctx.cmd.drawIndexed(carMesh.indexCount, 1, 0, 0, 0);
     });
-
-    mainWindow.show();
 
     return app.exec();
 }
