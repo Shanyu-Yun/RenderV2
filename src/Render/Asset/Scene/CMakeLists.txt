@@ -42,10 +42,14 @@ target_include_directories(Scene
         ${CMAKE_CURRENT_SOURCE_DIR}/private
 )
 
+# 查找依赖
+find_package(glm REQUIRED)
+
 # 链接依赖模块以便访问其头文件
 target_link_libraries(Scene
     PUBLIC
         VkCore
+        glm::glm
         ResourceManager
 )
 
