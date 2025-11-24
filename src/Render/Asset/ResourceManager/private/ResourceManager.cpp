@@ -176,7 +176,7 @@ std::string ResourceManager::loadShader(const std::filesystem::path &filepath, s
         program.computeShader =
             std::make_shared<ShaderModule>(m_context->getDevice(), spirvCodes[2], vk::ShaderStageFlagBits::eCompute);
     }
-    reflectDescriptorSetLayouts(spirvCodes, resourceId);
+    reflectDescriptorSetLayouts(spirvCodes, shaderName);
     {
         std::lock_guard<std::mutex> lock(m_shaderCache.mutex);
         m_shaderCache.loadedShaders.try_emplace(resourceId, std::move(program));
@@ -569,7 +569,7 @@ void ResourceManager::registerDescriptorLayouts(
 }
 
 void ResourceManager::reflectDescriptorSetLayouts(const std::vector<std::vector<uint32_t>> &spirvCodes,
-                                                  const std::string &resourceId)
+                                                  const std::string &shaderPrefix)
 {
     if (spirvCodes.empty())
         return;
@@ -599,7 +599,7 @@ void ResourceManager::reflectDescriptorSetLayouts(const std::vector<std::vector<
         return;
 
     auto finalSets = mergeReflectionResults(perModuleData);
-    registerDescriptorLayouts(finalSets, resourceId);
+    registerDescriptorLayouts(finalSets, shaderPrefix);
 }
 
 std::shared_ptr<std::vector<MeshData>> ResourceManager::getMesh(const std::string &name)

@@ -362,10 +362,10 @@ class ResourceManager
      * @brief 反射着色器程序的描述符集布局
      *
      * @param spirvCodes 单个着色器程序的SPIR-V字节码
-     * @param resourceId 资源标识符
+     * @param shaderPrefix 着色器前缀，用于标识描述符集布局
      */
     void reflectDescriptorSetLayouts(const std::vector<std::vector<uint32_t>> &spirvCodes,
-                                     const std::string &resourceId);
+                                      const std::string &shaderPrefix);
 };
 
 } // namespace asset
