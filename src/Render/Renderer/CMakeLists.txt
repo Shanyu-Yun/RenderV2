@@ -28,7 +28,8 @@ target_include_directories(Renderer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/private
 )
 
-target_link_libraries(ResourceManager
+target_link_libraries(Renderer
     PUBLIC
         VkCore
+        Asset
 )
