@@ -10,7 +10,7 @@
 # 添加子模块（按依赖顺序）
 add_subdirectory(VkCore)
 add_subdirectory(Asset)
-#add_subdirectory(Renderer)
+add_subdirectory(Renderer)
 
 # 创建Render接口库（聚合所有子模块）
 add_library(Render INTERFACE)
@@ -19,7 +19,7 @@ add_library(Render INTERFACE)
 target_link_libraries(Render INTERFACE
     VkCore
     Asset
-#    Renderer
+    Renderer
 )
 
 # 创建命名空间别名
