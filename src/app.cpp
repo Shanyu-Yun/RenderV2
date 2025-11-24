@@ -225,6 +225,7 @@ int main(int argc, char *argv[])
     vk::CommandPool commandPool = device.createCommandPool(poolInfo);
 
     std::vector<vk::CommandBuffer> commandBuffers;
+    std::vector<vk::ImageLayout> swapchainImageLayouts;
 
     auto allocateCommandBuffers = [&]() {
         if (!commandBuffers.empty())
@@ -234,6 +235,7 @@ int main(int argc, char *argv[])
 
         const auto swapchainImages = context.getSwapchainImages();
         commandBuffers.resize(swapchainImages.size());
+        swapchainImageLayouts.assign(swapchainImages.size(), vk::ImageLayout::eUndefined);
 
         vk::CommandBufferAllocateInfo allocInfo{};
         allocInfo.commandPool = commandPool;
@@ -302,7 +304,47 @@ int main(int argc, char *argv[])
         cmd.reset();
         vk::CommandBufferBeginInfo beginInfo{vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
         cmd.begin(beginInfo);
+
+        const auto &swapchainImages = context.getSwapchainImages();
+        if (imageIndex < swapchainImages.size())
+        {
+            vk::ImageMemoryBarrier toColor{};
+            toColor.oldLayout = swapchainImageLayouts[imageIndex];
+            toColor.newLayout = vk::ImageLayout::eAttachmentOptimal;
+            toColor.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toColor.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toColor.image = swapchainImages[imageIndex];
+            toColor.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
+            toColor.srcAccessMask = {};
+            toColor.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
+            vk::PipelineStageFlags srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+            if (swapchainImageLayouts[imageIndex] == vk::ImageLayout::ePresentSrcKHR)
+            {
+                srcStage = vk::PipelineStageFlagBits::eBottomOfPipe;
+            }
+
+            cmd.pipelineBarrier(srcStage, vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, nullptr, nullptr,
+                                toColor);
+        }
         renderer.recordFrame(cmd, imageIndex);
+
+        if (imageIndex < swapchainImages.size())
+        {
+            vk::ImageMemoryBarrier toPresent{};
+            toPresent.oldLayout = vk::ImageLayout::eAttachmentOptimal;
+            toPresent.newLayout = vk::ImageLayout::ePresentSrcKHR;
+            toPresent.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toPresent.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toPresent.image = swapchainImages[imageIndex];
+            toPresent.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
+            toPresent.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+            toPresent.dstAccessMask = {};
+
+            cmd.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                                vk::PipelineStageFlagBits::eBottomOfPipe, {}, nullptr, nullptr, toPresent);
+            swapchainImageLayouts[imageIndex] = vk::ImageLayout::ePresentSrcKHR;
+        }
         cmd.end();
 
         vk::Semaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
