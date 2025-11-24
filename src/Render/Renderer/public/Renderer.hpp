@@ -31,6 +31,8 @@ struct PassDrawContext
     vk::CommandBuffer cmd;
     uint32_t frameIndex;
 
+    vk::PipelineLayout pipelineLayout{VK_NULL_HANDLE};
+
     // per-frame 资源（包含 camera/light buffer + descriptorSets）
     PerFrameGpuResources &frameResources;
 
@@ -74,6 +76,7 @@ class Renderer
     {
         const RenderPassDefinition *definition{nullptr};
         vk::Pipeline pipeline{VK_NULL_HANDLE};
+        vk::PipelineLayout layout{VK_NULL_HANDLE};
     };
 
     void initializeServices(EngineServices &services);
