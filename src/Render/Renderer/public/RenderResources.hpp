@@ -7,7 +7,6 @@
 #include "VkContext.hpp"
 #include "VkResource.hpp"
 
-
 #include <filesystem>
 #include <optional>
 #include <string>

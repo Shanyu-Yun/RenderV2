@@ -6,7 +6,9 @@
 
 namespace asset
 {
-MaterialManager::MaterialManager(ResourceManager &resourceManager) : m_resourceManager(&resourceManager) {}
+MaterialManager::MaterialManager(ResourceManager &resourceManager) : m_resourceManager(&resourceManager)
+{
+}
 
 std::string MaterialManager::loadMaterialFromJson(const std::filesystem::path &filepath)
 {
@@ -58,7 +60,8 @@ void MaterialManager::clear()
     m_materials.clear();
 }
 
-PBRMaterial MaterialManager::parseMaterialJson(const std::filesystem::path &filepath, const nlohmann::json &materialJson)
+PBRMaterial MaterialManager::parseMaterialJson(const std::filesystem::path &filepath,
+                                               const nlohmann::json &materialJson)
 {
     if (!m_resourceManager)
     {

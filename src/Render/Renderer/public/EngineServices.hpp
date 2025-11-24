@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Render/Asset/MaterialManager/public/MaterialManager.hpp"
-#include "Render/Asset/ResourceManager/public/ResourceManager.hpp"
-#include "Render/Asset/Scene/public/Scene.hpp"
-#include "Render/VkCore/public/TransferManager.hpp"
-#include "Render/VkCore/public/VkContext.hpp"
-#include "Render/VkCore/public/VkResource.hpp"
+#include "MaterialManager.hpp"
+#include "ResourceManager.hpp"
+#include "Scene.hpp"
+#include "TransferManager.hpp"
+#include "VkContext.hpp"
+#include "VkResource.hpp"
 
 #include <memory>
 #include <optional>
@@ -45,8 +45,7 @@ class EngineServices
      * @param args 转发到服务构造函数的参数。
      * @return 注册后的服务引用。
      */
-    template <typename Service, typename... Args>
-    Service &emplaceService(Args &&...args)
+    template <typename Service, typename... Args> Service &emplaceService(Args &&...args)
     {
         auto holder = std::make_unique<OwningHolder<Service>>(std::make_unique<Service>(std::forward<Args>(args)...));
         Service *ptr = holder->get();
@@ -59,8 +58,7 @@ class EngineServices
      * @tparam Service 服务类型。
      * @param service 外部服务实例引用。
      */
-    template <typename Service>
-    void registerExternalService(Service &service)
+    template <typename Service> void registerExternalService(Service &service)
     {
         m_services[std::type_index(typeid(Service))] = std::make_unique<NonOwningHolder<Service>>(&service);
     }
@@ -68,8 +66,7 @@ class EngineServices
     /**
      * @brief 检查指定类型的服务是否已注册。
      */
-    template <typename Service>
-    [[nodiscard]] bool hasService() const
+    template <typename Service> [[nodiscard]] bool hasService() const
     {
         return m_services.find(std::type_index(typeid(Service))) != m_services.end();
     }
@@ -77,8 +74,7 @@ class EngineServices
     /**
      * @brief 获取指定类型的服务指针，未注册时返回 nullptr。
      */
-    template <typename Service>
-    [[nodiscard]] Service *tryGetService() const
+    template <typename Service> [[nodiscard]] Service *tryGetService() const
     {
         auto iter = m_services.find(std::type_index(typeid(Service)));
         if (iter == m_services.end())
@@ -91,8 +87,7 @@ class EngineServices
     /**
      * @brief 获取指定类型的服务引用，不存在时抛出异常。
      */
-    template <typename Service>
-    Service &getService() const
+    template <typename Service> Service &getService() const
     {
         auto *ptr = tryGetService<Service>();
         if (!ptr)
@@ -117,9 +112,9 @@ class EngineServices
      * @param swapchainConfig 若提供，则在初始化后立即创建交换链。
      * @return VkContext 引用。
      */
-    vkcore::VkContext &initializeVkContext(const vkcore::InstanceConfig &instanceConfig,
-                                           const vkcore::DeviceConfig &deviceConfig, void *windowHandle = nullptr,
-                                           const std::optional<vkcore::SwapchainConfig> &swapchainConfig = std::nullopt);
+    vkcore::VkContext &initializeVkContext(
+        const vkcore::InstanceConfig &instanceConfig, const vkcore::DeviceConfig &deviceConfig,
+        void *windowHandle = nullptr, const std::optional<vkcore::SwapchainConfig> &swapchainConfig = std::nullopt);
 
     /**
      * @brief 初始化 Vulkan 资源分配器。
@@ -164,7 +159,9 @@ class EngineServices
 
     template <typename Service> struct OwningHolder final : IServiceHolder
     {
-        explicit OwningHolder(std::unique_ptr<Service> ptr) : m_ptr(std::move(ptr)) {}
+        explicit OwningHolder(std::unique_ptr<Service> ptr) : m_ptr(std::move(ptr))
+        {
+        }
         void *get() const override
         {
             return m_ptr.get();
@@ -174,7 +171,9 @@ class EngineServices
 
     template <typename Service> struct NonOwningHolder final : IServiceHolder
     {
-        explicit NonOwningHolder(Service *ptr) : m_ptr(ptr) {}
+        explicit NonOwningHolder(Service *ptr) : m_ptr(ptr)
+        {
+        }
         void *get() const override
         {
             return m_ptr;
@@ -196,10 +195,9 @@ inline void EngineServices::clear()
     m_services.clear();
 }
 
-inline vkcore::VkContext &EngineServices::initializeVkContext(const vkcore::InstanceConfig &instanceConfig,
-                                                              const vkcore::DeviceConfig &deviceConfig,
-                                                              void *windowHandle,
-                                                              const std::optional<vkcore::SwapchainConfig> &swapchainConfig)
+inline vkcore::VkContext &EngineServices::initializeVkContext(
+    const vkcore::InstanceConfig &instanceConfig, const vkcore::DeviceConfig &deviceConfig, void *windowHandle,
+    const std::optional<vkcore::SwapchainConfig> &swapchainConfig)
 {
     auto &ctx = vkcore::VkContext::getInstance();
     if (!hasService<vkcore::VkContext>())
@@ -285,4 +283,3 @@ inline asset::Scene &EngineServices::initializeScene()
 }
 
 } // namespace renderer
-
