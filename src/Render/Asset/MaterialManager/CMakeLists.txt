@@ -44,10 +44,13 @@ target_include_directories(MaterialManager
 target_link_libraries(MaterialManager
     PUBLIC
         VkCore
+        ResourceManager
+        glm::glm
+        nlohmann_json::nlohmann_json
         ${SPIRV_REFLECT_LIBRARY}
 )
 
 # 输出信息
-message(STATUS "ResourceManager module:")
-message(STATUS "  Headers: ${RESOURCE_MANAGER_HEADERS}")
-message(STATUS "  Sources: ${RESOURCE_MANAGER_SOURCES}")
+message(STATUS "MaterialManager module:")
+message(STATUS "  Headers: ${MATERIAL_MANAGER_HEADERS}")
+message(STATUS "  Sources: ${MATERIAL_MANAGER_SOURCES}")

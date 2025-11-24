@@ -5,6 +5,7 @@
 # 添加子模块（按依赖顺序）
 add_subdirectory(ResourceManager)
 #add_subdirectory(Scene)
+add_subdirectory(MaterialManager)
 
 # 创建Asset静态库（聚合所有子模块）
 add_library(Asset STATIC)
@@ -19,6 +20,7 @@ set_target_properties(Asset PROPERTIES
 # 链接所有子模块的对象库
 target_sources(Asset PRIVATE
     $<TARGET_OBJECTS:ResourceManager>
+    $<TARGET_OBJECTS:MaterialManager>
     #$<TARGET_OBJECTS:Scene>
 )
 
@@ -39,6 +41,7 @@ target_link_libraries(Asset
         Vulkan::Vulkan
         nlohmann_json::nlohmann_json
         ResourceManager
+        MaterialManager
         #Scene
 )
 
