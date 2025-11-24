@@ -4,12 +4,12 @@
 #include "UI/VkRenderWindow.hpp"
 #include <QApplication>
 #include <array>
-#include <iostream>
-#include <string>
-#include <stdexcept>
-#include <vector>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 int main(int argc, char *argv[])
@@ -35,7 +35,8 @@ int main(int argc, char *argv[])
     swapchainConfig.height = 720;
     swapchainConfig.vsync = true;
 
-    auto &context = services.initializeVkContext(instanceConfig, deviceConfig, reinterpret_cast<void *>(winId), swapchainConfig);
+    auto &context =
+        services.initializeVkContext(instanceConfig, deviceConfig, reinterpret_cast<void *>(winId), swapchainConfig);
     services.initializeResourceAllocator();
     services.initializeTransferManager();
     auto &allocator = services.getService<vkcore::VkResourceAllocator>();
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
         vtxDesc.memory = vkcore::MemoryUsage::GpuOnly;
         vtxDesc.debugName = "CarVertexBuffer";
         gpuMesh.vertexBuffer = allocator.createBuffer(vtxDesc);
-        auto vtxToken = transferManager.uploadToBuffer(gpuMesh.vertexBuffer, mesh.vertices.data(), vtxDesc.size);
+        auto vtxToken = transferManager.uploadToBuffer(gpuMesh.vertexBuffer, mesh.vertices.data(), 0);
 
         vkcore::BufferDesc idxDesc{};
         idxDesc.size = mesh.getIndexDataSize();
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
         idxDesc.memory = vkcore::MemoryUsage::GpuOnly;
         idxDesc.debugName = "CarIndexBuffer";
         gpuMesh.indexBuffer = allocator.createBuffer(idxDesc);
-        auto idxToken = transferManager.uploadToBuffer(gpuMesh.indexBuffer, mesh.indices.data(), idxDesc.size);
+        auto idxToken = transferManager.uploadToBuffer(gpuMesh.indexBuffer, mesh.indices.data(), 0);
 
         vtxToken.wait();
         idxToken.wait();
@@ -184,16 +185,16 @@ int main(int argc, char *argv[])
 
     renderer.registerPassCallback("MainPass", [&](const renderer::RenderPassDefinition &,
                                                   const renderer::PassDrawContext &ctx) {
-        vk::DescriptorSet cameraSet = ctx.frameResources.descriptorSets.size() > 0 ? ctx.frameResources.descriptorSets[0]
-                                                                                   : vk::DescriptorSet{};
-        vk::DescriptorSet materialSet = ctx.frameResources.descriptorSets.size() > 1
-                                             ? ctx.frameResources.descriptorSets[1]
-                                             : vk::DescriptorSet{};
+        vk::DescriptorSet cameraSet =
+            ctx.frameResources.descriptorSets.size() > 0 ? ctx.frameResources.descriptorSets[0] : vk::DescriptorSet{};
+        vk::DescriptorSet materialSet =
+            ctx.frameResources.descriptorSets.size() > 1 ? ctx.frameResources.descriptorSets[1] : vk::DescriptorSet{};
 
         auto device = context.getDevice();
         if (ctx.frameResources.descriptorSchemas.size() > 0 && cameraSet)
         {
-            auto writer = vkcore::DescriptorSetWriter::begin(device, ctx.frameResources.descriptorSchemas[0], cameraSet);
+            auto writer =
+                vkcore::DescriptorSetWriter::begin(device, ctx.frameResources.descriptorSchemas[0], cameraSet);
             writer.writeBuffer("CameraData", ctx.frameResources.cameraBuffer)
                 .writeBuffer("LightData", ctx.frameResources.lightBuffer)
                 .update();
@@ -201,9 +202,11 @@ int main(int argc, char *argv[])
 
         if (ctx.frameResources.descriptorSchemas.size() > 1 && materialSet)
         {
-            auto writer = vkcore::DescriptorSetWriter::begin(device, ctx.frameResources.descriptorSchemas[1], materialSet);
-            writer.writeSampledImage("baseColorTex", baseColor.image, baseColor.sampler,
-                                     vk::ImageLayout::eShaderReadOnlyOptimal)
+            auto writer =
+                vkcore::DescriptorSetWriter::begin(device, ctx.frameResources.descriptorSchemas[1], materialSet);
+            writer
+                .writeSampledImage("baseColorTex", baseColor.image, baseColor.sampler,
+                                   vk::ImageLayout::eShaderReadOnlyOptimal)
                 .update();
         }
 
