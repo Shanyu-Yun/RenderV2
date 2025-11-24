@@ -1,7 +1,7 @@
-#include "Render/Renderer/public/GraphicsPipelineBuilder.hpp"
+#include "GraphicsPipelineBuilder.hpp"
 
-#include "Render/Asset/ResourceManager/public/ResourceType.hpp"
-
+#include "Descriptor.hpp"
+#include "ResourceType.hpp"
 #include <array>
 #include <cstddef>
 #include <stdexcept>
@@ -162,9 +162,12 @@ vk::UniquePipeline GraphicsPipelineBuilder::build()
     pipelineInfo.setPDepthStencilState(&depthStencilState);
     pipelineInfo.setPColorBlendState(&colorBlendState);
     pipelineInfo.setLayout(pipelineLayout);
-    pipelineInfo.setDynamicState({static_cast<uint32_t>(dynamicStates.size()), dynamicStates.data()});
 
-    return m_context->getDevice().createGraphicsPipelineUnique({}, pipelineInfo);
+    vk::PipelineDynamicStateCreateInfo dynamicStateInfo{};
+    dynamicStateInfo.setDynamicStates(dynamicStates);
+    pipelineInfo.pDynamicState = &dynamicStateInfo;
+
+    return m_context->getDevice().createGraphicsPipelineUnique({}, pipelineInfo).value;
 }
 
 vk::UniquePipelineLayout GraphicsPipelineBuilder::buildPipelineLayout() const
@@ -253,8 +256,8 @@ vk::PipelineDepthStencilStateCreateInfo GraphicsPipelineBuilder::buildDepthStenc
     return depth;
 }
 
-vk::PipelineColorBlendStateCreateInfo
-GraphicsPipelineBuilder::buildColorBlendState(std::vector<vk::PipelineColorBlendAttachmentState> &attachments) const
+vk::PipelineColorBlendStateCreateInfo GraphicsPipelineBuilder::buildColorBlendState(
+    std::vector<vk::PipelineColorBlendAttachmentState> &attachments) const
 {
     attachments.clear();
     attachments.reserve(m_colorFormats.size());
@@ -358,4 +361,3 @@ std::string GraphicsPipelineLibrary::makePipelineKey(const std::string &shaderPr
 }
 
 } // namespace renderer
-

@@ -1,4 +1,4 @@
-#include "Render/Renderer/public/RenderPasses.hpp"
+#include "RenderPasses.hpp"
 
 #include <stdexcept>
 
@@ -30,4 +30,3 @@ const RenderPassDefinition *RenderPassSequence::findPass(const std::string &name
 }
 
 } // namespace renderer
-

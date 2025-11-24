@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Render/Asset/ResourceManager/public/ResourceManager.hpp"
-#include "Render/Renderer/public/RenderPasses.hpp"
-#include "Render/VkCore/public/VkContext.hpp"
+#include "RenderPasses.hpp"
+#include "ResourceManager.hpp"
+#include "VkContext.hpp"
+
 
 #include <optional>
 #include <string>
@@ -50,8 +51,8 @@ class GraphicsPipelineBuilder
     vk::PipelineRasterizationStateCreateInfo buildRasterizationState() const;
     vk::PipelineMultisampleStateCreateInfo buildMultisampleState() const;
     vk::PipelineDepthStencilStateCreateInfo buildDepthStencilState() const;
-    vk::PipelineColorBlendStateCreateInfo buildColorBlendState(std::vector<vk::PipelineColorBlendAttachmentState> &)
-        const;
+    vk::PipelineColorBlendStateCreateInfo buildColorBlendState(
+        std::vector<vk::PipelineColorBlendAttachmentState> &) const;
     std::vector<vk::DynamicState> buildDynamicStates() const;
     vk::PipelineLayout createPipelineLayoutInternal(const std::vector<vk::PushConstantRange> &pushConstants) const;
 
@@ -100,4 +101,3 @@ class GraphicsPipelineLibrary
 };
 
 } // namespace renderer
-

@@ -1,4 +1,4 @@
-#include "Render/Renderer/public/RenderResources.hpp"
+#include "RenderResources.hpp"
 
 #include <stdexcept>
 
@@ -80,8 +80,8 @@ vkcore::DescriptorSetWriter RendererResourceService::beginDescriptorWrite(const 
         throw std::out_of_range("Descriptor set index exceeds allocated sets");
     }
 
-    auto schema = (setIndex < frameResources.descriptorSchemas.size()) ? frameResources.descriptorSchemas[setIndex]
-                                                                       : nullptr;
+    auto schema =
+        (setIndex < frameResources.descriptorSchemas.size()) ? frameResources.descriptorSchemas[setIndex] : nullptr;
     if (!schema)
     {
         throw std::runtime_error("Descriptor schema not available for requested set index");
@@ -91,4 +91,3 @@ vkcore::DescriptorSetWriter RendererResourceService::beginDescriptorWrite(const 
 }
 
 } // namespace renderer
-

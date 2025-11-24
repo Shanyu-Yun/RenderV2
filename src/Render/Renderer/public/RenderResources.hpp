@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Render/Asset/ResourceManager/public/ResourceManager.hpp"
-#include "Render/Asset/Scene/public/SceneTypes.hpp"
-#include "Render/VkCore/public/Descriptor.hpp"
-#include "Render/VkCore/public/TransferManager.hpp"
-#include "Render/VkCore/public/VkResource.hpp"
-#include "Render/VkCore/public/VkContext.hpp"
+#include "Descriptor.hpp"
+#include "ResourceManager.hpp"
+#include "SceneTypes.hpp"
+#include "TransferManager.hpp"
+#include "VkContext.hpp"
+#include "VkResource.hpp"
+
 
 #include <filesystem>
 #include <optional>
@@ -48,10 +49,10 @@ struct RendererGlobalResources
  */
 struct FrameResourceDefinition
 {
-    std::string shaderPrefix;                   ///< 关联的着色器前缀，用于查询描述符布局。
+    std::string shaderPrefix; ///< 关联的着色器前缀，用于查询描述符布局。
     vk::DeviceSize cameraBufferSize{sizeof(asset::CameraUBO)}; ///< 相机 UBO 大小。
     vk::DeviceSize lightBufferSize{sizeof(asset::LightUBO)};   ///< 光源 UBO 大小。
-    uint32_t framesInFlight{3};                                    ///< 帧并发数量。
+    uint32_t framesInFlight{3};                                ///< 帧并发数量。
 };
 
 /**
@@ -108,7 +109,8 @@ class RendererResourceService
      * @param camera 相机 UBO 数据。
      * @return 传输令牌，可用于等待上传完成。
      */
-    vkcore::TransferToken uploadCameraData(const PerFrameGpuResources &frameResources, const asset::CameraUBO &camera) const;
+    vkcore::TransferToken uploadCameraData(const PerFrameGpuResources &frameResources,
+                                           const asset::CameraUBO &camera) const;
 
     /**
      * @brief 上传光源数据到 GPU。
@@ -116,7 +118,8 @@ class RendererResourceService
      * @param lights 光源 UBO 数据。
      * @return 传输令牌，可用于等待上传完成。
      */
-    vkcore::TransferToken uploadLightData(const PerFrameGpuResources &frameResources, const asset::LightUBO &lights) const;
+    vkcore::TransferToken uploadLightData(const PerFrameGpuResources &frameResources,
+                                          const asset::LightUBO &lights) const;
 
     /**
      * @brief 开始写入指定 set 的 DescriptorSet。
@@ -124,7 +127,8 @@ class RendererResourceService
      * @param setIndex 目标 set 序号。
      * @return DescriptorSetWriter 便于链式写入。
      */
-    vkcore::DescriptorSetWriter beginDescriptorWrite(const PerFrameGpuResources &frameResources, uint32_t setIndex) const;
+    vkcore::DescriptorSetWriter beginDescriptorWrite(const PerFrameGpuResources &frameResources,
+                                                     uint32_t setIndex) const;
 
   private:
     asset::ResourceManager *m_resourceManager{nullptr};
@@ -134,4 +138,3 @@ class RendererResourceService
 };
 
 } // namespace renderer
-
