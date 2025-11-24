@@ -4,7 +4,7 @@
 
 # 添加子模块（按依赖顺序）
 add_subdirectory(ResourceManager)
-#add_subdirectory(Scene)
+add_subdirectory(Scene)
 add_subdirectory(MaterialManager)
 
 # 创建Asset静态库（聚合所有子模块）
@@ -21,7 +21,7 @@ set_target_properties(Asset PROPERTIES
 target_sources(Asset PRIVATE
     $<TARGET_OBJECTS:ResourceManager>
     $<TARGET_OBJECTS:MaterialManager>
-    #$<TARGET_OBJECTS:Scene>
+    $<TARGET_OBJECTS:Scene>
 )
 
 # 设置包含目录（从子模块继承）
@@ -42,7 +42,7 @@ target_link_libraries(Asset
         nlohmann_json::nlohmann_json
         ResourceManager
         MaterialManager
-        #Scene
+        Scene
 )
 
 # 注意：stb 是单头文件库
