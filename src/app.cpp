@@ -3,14 +3,40 @@
 #include "UI/MainWindow.hpp"
 #include "UI/VkRenderWindow.hpp"
 #include <QApplication>
+#include <QObject>
+#include <QTimer>
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+
+namespace
+{
+std::filesystem::path findProjectRoot()
+{
+    auto current = std::filesystem::current_path();
+    while (!current.empty())
+    {
+        if (std::filesystem::exists(current / "assets"))
+        {
+            return current;
+        }
+        auto parent = current.parent_path();
+        if (parent == current)
+        {
+            break;
+        }
+        current = parent;
+    }
+    return std::filesystem::current_path();
+}
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +49,7 @@ int main(int argc, char *argv[])
     auto winId = vkRenderWindowHandle->winId();
     renderer::EngineServices &services = renderer::EngineServices::instance();
 
-    const std::filesystem::path projectRoot = "E:/Github_repo/RenderV2";
+    const std::filesystem::path projectRoot = findProjectRoot();
     const std::filesystem::path assetsRoot = projectRoot / "assets";
     const std::filesystem::path carAssetRoot = assetsRoot / "car";
     const std::filesystem::path shaderRoot = assetsRoot / "shaders/spv";
@@ -182,6 +208,107 @@ int main(int argc, char *argv[])
     GPUTexture baseColor = uploadTexture(carMaterial && !carMaterial->textures.baseColor.empty()
                                              ? carMaterial->textures.baseColor
                                              : (carAssetRoot / "texture_pbr_20250901.png").string());
+
+    // 渲染循环相关资源
+    vk::Device device = context.getDevice();
+    vk::Queue graphicsQueue = context.getGraphicsQueue();
+    vk::Queue presentQueue = context.getPresentQueue();
+    auto graphicsFamily = context.getQueueFamilyIndices().graphicsFamily;
+    if (!graphicsFamily)
+    {
+        throw std::runtime_error("Graphics queue family is not available");
+    }
+    uint32_t graphicsQueueFamily = *graphicsFamily;
+
+    vk::CommandPoolCreateInfo poolInfo{};
+    poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+    poolInfo.queueFamilyIndex = graphicsQueueFamily;
+    vk::CommandPool commandPool = device.createCommandPool(poolInfo);
+
+    const auto swapchainImages = context.getSwapchainImages();
+    std::vector<vk::CommandBuffer> commandBuffers(swapchainImages.size());
+    vk::CommandBufferAllocateInfo allocInfo{};
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+    commandBuffers = device.allocateCommandBuffers(allocInfo);
+
+    const size_t maxFramesInFlight = std::min<size_t>(rendererConfig.frameDefinition.framesInFlight, commandBuffers.size());
+    std::vector<vk::Semaphore> imageAvailableSemaphores(maxFramesInFlight);
+    std::vector<vk::Semaphore> renderFinishedSemaphores(maxFramesInFlight);
+    std::vector<vk::Fence> inFlightFences(maxFramesInFlight);
+
+    vk::SemaphoreCreateInfo semaphoreInfo{};
+    vk::FenceCreateInfo fenceInfo{vk::FenceCreateFlagBits::eSignaled};
+    for (size_t i = 0; i < maxFramesInFlight; ++i)
+    {
+        imageAvailableSemaphores[i] = device.createSemaphore(semaphoreInfo);
+        renderFinishedSemaphores[i] = device.createSemaphore(semaphoreInfo);
+        inFlightFences[i] = device.createFence(fenceInfo);
+    }
+
+    size_t currentFrame = 0;
+    auto drawFrame = [&]() {
+        device.waitForFences(inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+
+        auto acquired = device.acquireNextImageKHR(context.getSwapchain(), std::numeric_limits<uint64_t>::max(),
+                                                   imageAvailableSemaphores[currentFrame], {});
+        if (acquired.result != vk::Result::eSuccess && acquired.result != vk::Result::eSuboptimalKHR)
+        {
+            return;
+        }
+
+        uint32_t imageIndex = acquired.value;
+        device.resetFences(inFlightFences[currentFrame]);
+
+        vk::CommandBuffer cmd = commandBuffers[imageIndex];
+        cmd.reset();
+        vk::CommandBufferBeginInfo beginInfo{vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
+        cmd.begin(beginInfo);
+        renderer.recordFrame(cmd, imageIndex);
+        cmd.end();
+
+        vk::Semaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+        vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        vk::Semaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+
+        vk::SubmitInfo submitInfo{};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmd;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        graphicsQueue.submit(submitInfo, inFlightFences[currentFrame]);
+
+        vk::SwapchainKHR swapchains[] = {context.getSwapchain()};
+        vk::PresentInfoKHR presentInfo{};
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapchains;
+        presentInfo.pImageIndices = &imageIndex;
+        presentQueue.presentKHR(presentInfo);
+
+        currentFrame = (currentFrame + 1) % maxFramesInFlight;
+    };
+
+    QTimer *renderTimer = new QTimer(&mainWindow);
+    QObject::connect(renderTimer, &QTimer::timeout, drawFrame);
+    renderTimer->start(16); // ~60 FPS
+
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, [&]() {
+        device.waitIdle();
+        for (size_t i = 0; i < maxFramesInFlight; ++i)
+        {
+            device.destroyFence(inFlightFences[i]);
+            device.destroySemaphore(renderFinishedSemaphores[i]);
+            device.destroySemaphore(imageAvailableSemaphores[i]);
+        }
+        device.destroyCommandPool(commandPool);
+    });
 
     renderer.registerPassCallback("MainPass", [&](const renderer::RenderPassDefinition &,
                                                   const renderer::PassDrawContext &ctx) {
