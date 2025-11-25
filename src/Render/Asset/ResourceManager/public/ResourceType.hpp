@@ -103,6 +103,46 @@ struct Vertex
     glm::vec3 position; // 12 bytes
     glm::vec3 normal;   // 12 bytes
     glm::vec2 texCoord; // 8 bytes
+
+    static vk::VertexInputBindingDescription getBindingDescription()
+    {
+        vk::VertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+        return bindingDescription;
+    }
+
+    static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions()
+    {
+        std::array<vk::VertexInputAttributeDescription, 4> attributeDescriptions{};
+
+        // color: vec4
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = vk::Format::eR32G32B32A32Sfloat;
+        attributeDescriptions[0].offset = offsetof(Vertex, color);
+
+        // position: vec3
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
+        attributeDescriptions[1].offset = offsetof(Vertex, position);
+
+        // normal: vec3
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = vk::Format::eR32G32B32Sfloat;
+        attributeDescriptions[2].offset = offsetof(Vertex, normal);
+
+        // texCoord: vec2
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = vk::Format::eR32G32Sfloat;
+        attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+
+        return attributeDescriptions;
+    }
 };
 
 /**

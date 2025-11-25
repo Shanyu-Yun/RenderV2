@@ -1,5 +1,6 @@
 #include "../public/TransferManager.hpp"
 #include "../public/VkUtils.hpp"
+#include "TransferManager.hpp"
 #include <algorithm>
 #include <memory>
 #include <stdexcept>
@@ -202,6 +203,24 @@ TransferToken TransferManager::copyBuffer(const ManagedBuffer &srcBuffer, const 
     return endOneTimeCommands(cmd, TransferQueueType::Transfer);
 }
 
+void vkcore::TransferManager::writeToUniformBuffer(const ManagedBuffer &dstBuffer, const void *data,
+                                                   vk::DeviceSize size, vk::DeviceSize dstOffset)
+{
+    if (!m_ctx)
+        throw std::runtime_error("TransferManager is not initialized");
+    if (!dstBuffer)
+        throw std::runtime_error("Destination buffer is invalid");
+    const vk::DeviceSize bufferSize = dstBuffer.getSize();
+    if (dstOffset >= bufferSize)
+        throw std::out_of_range("dstOffset exceeds destination buffer size");
+    if (size > bufferSize - dstOffset)
+        throw std::out_of_range("Write size exceeds destination buffer capacity");
+    void *mappedData = nullptr;
+    VmaAllocation allocation = dstBuffer.getAllocation();
+    vmaMapMemory(m_allocator->getAllocator(), allocation, &mappedData);
+    std::memcpy(static_cast<uint8_t *>(mappedData) + dstOffset, data, static_cast<size_t>(size));
+    vmaUnmapMemory(m_allocator->getAllocator(), allocation);
+}
 TransferToken TransferManager::copyBufferToImage(const ManagedBuffer &srcBuffer, const ManagedImage &dstImage,
                                                  uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel,
                                                  uint32_t arrayLayer)

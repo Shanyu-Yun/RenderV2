@@ -103,7 +103,7 @@ std::string ResourceManager::loadTexture(const std::filesystem::path &filepath)
             return resourceId;
         }
     }
-    TextureData textureData = TextureLoader::loadFromFile(filepath, 0, false);
+    TextureData textureData = TextureLoader::loadFromFile(filepath, 4, false);
 
     if (!textureData.isValid())
     {
@@ -689,7 +689,6 @@ std::vector<std::shared_ptr<const vkcore::DescriptorSetSchema>> ResourceManager:
         if (schema)
         {
             schemas.push_back(schema);
-#ifdef ENABLE_DEBUG_LOG
             std::cout << "=== Descriptor Set Layout Debug ===\n";
             std::cout << "Shader: " << shaderPrefix << " Set: " << set << "\n";
             for (auto &b : schema->getBindings())
@@ -699,7 +698,6 @@ std::vector<std::shared_ptr<const vkcore::DescriptorSetSchema>> ResourceManager:
                           << " StageFlags: " << vk::to_string(b.stageFlags) << "\n";
             }
             std::cout << "===================================\n";
-#endif
         }
     }
 

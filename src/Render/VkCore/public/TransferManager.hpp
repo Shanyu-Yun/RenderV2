@@ -187,7 +187,17 @@ class TransferManager
      */
     TransferToken copyBuffer(const ManagedBuffer &srcBuffer, const ManagedBuffer &dstBuffer, vk::DeviceSize size,
                              vk::DeviceSize srcOffset = 0, vk::DeviceSize dstOffset = 0);
-
+    /**
+     * @brief 写入数据到Uniform Buffer
+     *
+     * @param dstBuffer 目标Uniform Buffer
+     * @param data 数据指针
+     * @param size 数据大小
+     * @param dstOffset 目标偏移
+     * @return void
+     */
+    void writeToUniformBuffer(const ManagedBuffer &dstBuffer, const void *data, vk::DeviceSize size,
+                              vk::DeviceSize dstOffset = 0);
     // ==================== Image传输 ====================
 
     /**

@@ -46,19 +46,19 @@ struct Camera
  */
 struct CameraUBO
 {
-    glm::mat4 view{1.0f};        ///< 视图矩阵。
-    glm::mat4 projection{1.0f};  ///< 投影矩阵。
+    glm::mat4 view{1.0f};                           ///< 视图矩阵。
+    glm::mat4 projection{1.0f};                     ///< 投影矩阵。
     glm::vec4 viewPosition{0.0f, 0.0f, 0.0f, 1.0f}; ///< 世界空间的相机位置，齐次坐标形式。
 };
 
 /**
  * @brief 支持的光源类型。
  */
-enum class LightType
+enum class LightType : uint32_t
 {
-    Directional, ///< 平行光。
-    Point,       ///< 点光源。
-    Spot,        ///< 聚光灯。
+    Point = 0,
+    Directional = 1,
+    Spot = 2,
 };
 
 /**
@@ -99,9 +99,10 @@ struct LightUBO
         glm::vec4 spotParams{0.0f};     ///< x 内锥角，y 外锥角，其余保留。
     };
 
-    static constexpr size_t MaxLights = 16; ///< 支持的最大光源数量。
+    static constexpr size_t MaxLights = 16;   ///< 支持的最大光源数量。
     std::array<GpuLight, MaxLights> lights{}; ///< 固定大小的光源数组。
-    uint32_t lightCount{0};                  ///< 当前有效光源数量。
+    uint32_t lightCount{0};                   ///< 当前有效光源数量。
+    uint32_t pad[3];                          /// 对齐填充
 };
 
 /**
@@ -130,9 +131,9 @@ struct ColliderComponent
  */
 struct TransformComponent
 {
-    glm::vec3 position{0.0f};                 ///< 世界空间位移。
+    glm::vec3 position{0.0f};                   ///< 世界空间位移。
     glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f}; ///< 世界空间旋转（四元数）。
-    glm::vec3 scale{1.0f};                    ///< 逐轴缩放。
+    glm::vec3 scale{1.0f};                      ///< 逐轴缩放。
 
     /**
      * @brief 生成 TRS 变换矩阵。
@@ -158,14 +159,13 @@ enum class SceneNodeType
  */
 struct SceneNode
 {
-    uint32_t id{0};                           ///< 节点唯一标识。
-    SceneNodeType type{SceneNodeType::Renderable}; ///< 节点类别。
-    TransformComponent transform{};           ///< 基础变换组件。
-    std::optional<ColliderComponent> collider{}; ///< 可选的碰撞体组件。
-    std::optional<Camera> camera{};               ///< 可选相机组件。
-    std::optional<Light> light{};                 ///< 可选光源组件。
+    uint32_t id{0};                                  ///< 节点唯一标识。
+    SceneNodeType type{SceneNodeType::Renderable};   ///< 节点类别。
+    TransformComponent transform{};                  ///< 基础变换组件。
+    std::optional<ColliderComponent> collider{};     ///< 可选的碰撞体组件。
+    std::optional<Camera> camera{};                  ///< 可选相机组件。
+    std::optional<Light> light{};                    ///< 可选光源组件。
     std::optional<RenderableComponent> renderable{}; ///< 可选渲染组件。
 };
 
 } // namespace asset
-

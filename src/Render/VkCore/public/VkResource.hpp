@@ -88,7 +88,7 @@ struct BufferDesc
     vk::DeviceSize size = 0;
     BufferUsageFlags usage = BufferUsageFlags::None;
     MemoryUsage memory = MemoryUsage::GpuOnly;
-    const char *debugName = nullptr;
+    std::string debugName = "";
 };
 
 /**
@@ -109,7 +109,7 @@ struct ImageDesc
     vk::ImageTiling tiling = vk::ImageTiling::eOptimal;
     vk::ImageType type = vk::ImageType::e2D;
     vk::ImageCreateFlags flags = {};
-    const char *debugName = nullptr;
+    std::string debugName = "";
 };
 
 // ==================== RAII封装 ====================
@@ -125,7 +125,7 @@ class ManagedBuffer
   public:
     ManagedBuffer() = default;
     ManagedBuffer(VkResourceAllocator *owner, vk::Buffer buffer, VmaAllocation allocation, vk::DeviceSize size,
-                  const char *debugName = nullptr);
+                  const std::string debugName = "");
     ManagedBuffer(const ManagedBuffer &) = delete;
     ManagedBuffer &operator=(const ManagedBuffer &) = delete;
     ManagedBuffer(ManagedBuffer &&other) noexcept;
@@ -144,7 +144,7 @@ class ManagedBuffer
     {
         return m_size;
     }
-    const char *getDebugName() const
+    const std::string &getDebugName() const
     {
         return m_debugName;
     }
@@ -161,7 +161,7 @@ class ManagedBuffer
     vk::Buffer m_buffer{};
     VmaAllocation m_allocation = nullptr;
     vk::DeviceSize m_size = 0;
-    const char *m_debugName = nullptr;
+    std::string m_debugName = "";
 };
 
 /**
@@ -176,7 +176,7 @@ class ManagedImage
 
     ManagedImage(VkResourceAllocator *owner, vk::ImageView view, vk::Image image, VmaAllocation allocation,
                  vk::Extent3D extent, vk::Format format, vk::ImageAspectFlags aspectMask,
-                 const char *debugName = nullptr);
+                 const std::string debugName = "");
 
     ManagedImage(const ManagedImage &) = delete;
     ManagedImage &operator=(const ManagedImage &) = delete;
@@ -208,7 +208,7 @@ class ManagedImage
     {
         return m_aspectMask;
     }
-    const char *getDebugName() const
+    const std::string &getDebugName() const
     {
         return m_debugName;
     }
@@ -228,7 +228,7 @@ class ManagedImage
     vk::Extent3D m_extent{0, 0, 0};
     vk::Format m_format = vk::Format::eUndefined;
     vk::ImageAspectFlags m_aspectMask{};
-    const char *m_debugName = nullptr;
+    std::string m_debugName = "";
 };
 
 /**
@@ -239,7 +239,7 @@ class ManagedSampler
 {
   public:
     ManagedSampler() = default;
-    ManagedSampler(VkResourceAllocator *owner, vk::Sampler sampler, const char *debugName = nullptr);
+    ManagedSampler(VkResourceAllocator *owner, vk::Sampler sampler, const std::string debugName = "");
     ManagedSampler(const ManagedSampler &) = delete;
     ManagedSampler &operator=(const ManagedSampler &) = delete;
     ManagedSampler(ManagedSampler &&other) noexcept;
@@ -250,7 +250,7 @@ class ManagedSampler
     {
         return m_sampler;
     }
-    const char *getDebugName() const
+    const std::string &getDebugName() const
     {
         return m_debugName;
     }
@@ -265,7 +265,7 @@ class ManagedSampler
   private:
     VkResourceAllocator *m_owner = nullptr;
     vk::Sampler m_sampler{};
-    const char *m_debugName = nullptr;
+    std::string m_debugName = "";
 };
 
 // ==================== VkResourceAllocator主类 ====================
@@ -300,7 +300,7 @@ class VkResourceAllocator
     /** 从已有的ManagedImage创建新的ImageView（例如创建不同MipLevel的View） */
     ManagedImage createImageView(const ManagedImage &image, vk::ImageAspectFlags aspectMask, uint32_t baseMipLevel = 0,
                                  uint32_t levelCount = 1, uint32_t baseArrayLayer = 0, uint32_t layerCount = 1,
-                                 vk::ImageViewType viewType = vk::ImageViewType::e2D, const char *debugName = nullptr);
+                                 vk::ImageViewType viewType = vk::ImageViewType::e2D, std::string debugName = "");
 
     // ==================== Sampler管理 ====================
 
@@ -308,7 +308,7 @@ class VkResourceAllocator
     ManagedSampler createSampler(vk::Filter magFilter = vk::Filter::eLinear, vk::Filter minFilter = vk::Filter::eLinear,
                                  vk::SamplerMipmapMode mipmapMode = vk::SamplerMipmapMode::eLinear,
                                  vk::SamplerAddressMode addressMode = vk::SamplerAddressMode::eRepeat,
-                                 float maxAnisotropy = 1.0f, const char *debugName = nullptr);
+                                 float maxAnisotropy = 1.0f, std::string debugName = "");
 
     // ==================== Getter ====================
 
@@ -328,7 +328,7 @@ class VkResourceAllocator
     vk::ImageUsageFlags toVkImageUsage(ImageUsageFlags usage) const;
 
     // 设置Debug名称
-    void setDebugName(vk::ObjectType objectType, uint64_t objectHandle, const char *name);
+    void setDebugName(vk::ObjectType objectType, uint64_t objectHandle, std::string name);
 
     // 内部资源销毁方法（仅供RAII类调用）
     void destroyBuffer(vk::Buffer buffer, VmaAllocation allocation);

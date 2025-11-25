@@ -9,20 +9,24 @@ using namespace vkcore;
 
 // ManagedBuffer
 ManagedBuffer::ManagedBuffer(VkResourceAllocator *owner, vk::Buffer buffer, VmaAllocation allocation,
-                             vk::DeviceSize size, const char *debugName)
+                             vk::DeviceSize size, const std::string debugName)
     : m_owner(owner), m_buffer(buffer), m_allocation(allocation), m_size(size), m_debugName(debugName)
 {
 }
 
 ManagedBuffer::ManagedBuffer(ManagedBuffer &&other) noexcept
-    : m_owner(other.m_owner), m_buffer(other.m_buffer), m_allocation(other.m_allocation), m_size(other.m_size),
-      m_debugName(other.m_debugName)
 {
+    m_owner = other.m_owner;
+    m_buffer = other.m_buffer;
+    m_allocation = other.m_allocation;
+    m_size = other.m_size;
+    m_debugName = std::move(other.m_debugName);
+
     other.m_owner = nullptr;
-    other.m_buffer = nullptr;
+    other.m_buffer = VK_NULL_HANDLE;
     other.m_allocation = nullptr;
     other.m_size = 0;
-    other.m_debugName = nullptr;
+    other.m_debugName.clear();
 }
 
 ManagedBuffer &ManagedBuffer::operator=(ManagedBuffer &&other) noexcept
@@ -30,17 +34,18 @@ ManagedBuffer &ManagedBuffer::operator=(ManagedBuffer &&other) noexcept
     if (this != &other)
     {
         release();
+
         m_owner = other.m_owner;
         m_buffer = other.m_buffer;
         m_allocation = other.m_allocation;
         m_size = other.m_size;
-        m_debugName = other.m_debugName;
+        m_debugName = std::move(other.m_debugName);
 
         other.m_owner = nullptr;
-        other.m_buffer = nullptr;
+        other.m_buffer = VK_NULL_HANDLE;
         other.m_allocation = nullptr;
         other.m_size = 0;
-        other.m_debugName = nullptr;
+        other.m_debugName.clear();
     }
     return *this;
 }
@@ -63,25 +68,31 @@ void ManagedBuffer::release()
 
 ManagedImage::ManagedImage(VkResourceAllocator *owner, vk::ImageView view, vk::Image image, VmaAllocation allocation,
                            vk::Extent3D extent, vk::Format format, vk::ImageAspectFlags aspectMask,
-                           const char *debugName)
+                           const std::string debugName)
     : m_owner(owner), m_view(view), m_image(image), m_allocation(allocation), m_extent(extent), m_format(format),
       m_aspectMask(aspectMask), m_debugName(debugName)
 {
 }
 
 ManagedImage::ManagedImage(ManagedImage &&other) noexcept
-    : m_owner(other.m_owner), m_view(other.m_view), m_image(other.m_image), m_allocation(other.m_allocation),
-      m_extent(other.m_extent), m_format(other.m_format), m_aspectMask(other.m_aspectMask),
-      m_debugName(other.m_debugName)
 {
+    m_owner = other.m_owner;
+    m_view = other.m_view;
+    m_image = other.m_image;
+    m_allocation = other.m_allocation;
+    m_extent = other.m_extent;
+    m_format = other.m_format;
+    m_aspectMask = other.m_aspectMask;
+    m_debugName = std::move(other.m_debugName);
+
     other.m_owner = nullptr;
-    other.m_view = nullptr;
-    other.m_image = nullptr;
+    other.m_view = VK_NULL_HANDLE;
+    other.m_image = VK_NULL_HANDLE;
     other.m_allocation = nullptr;
     other.m_extent = vk::Extent3D{0, 0, 0};
     other.m_format = vk::Format::eUndefined;
     other.m_aspectMask = {};
-    other.m_debugName = nullptr;
+    other.m_debugName.clear();
 }
 
 ManagedImage &ManagedImage::operator=(ManagedImage &&other) noexcept
@@ -89,6 +100,7 @@ ManagedImage &ManagedImage::operator=(ManagedImage &&other) noexcept
     if (this != &other)
     {
         release();
+
         m_owner = other.m_owner;
         m_view = other.m_view;
         m_image = other.m_image;
@@ -96,16 +108,16 @@ ManagedImage &ManagedImage::operator=(ManagedImage &&other) noexcept
         m_extent = other.m_extent;
         m_format = other.m_format;
         m_aspectMask = other.m_aspectMask;
-        m_debugName = other.m_debugName;
+        m_debugName = std::move(other.m_debugName);
 
         other.m_owner = nullptr;
-        other.m_view = nullptr;
-        other.m_image = nullptr;
+        other.m_view = VK_NULL_HANDLE;
+        other.m_image = VK_NULL_HANDLE;
         other.m_allocation = nullptr;
         other.m_extent = vk::Extent3D{0, 0, 0};
         other.m_format = vk::Format::eUndefined;
         other.m_aspectMask = {};
-        other.m_debugName = nullptr;
+        other.m_debugName.clear();
     }
     return *this;
 }
@@ -135,7 +147,7 @@ void ManagedImage::release()
 }
 
 // ManagedSampler
-ManagedSampler::ManagedSampler(VkResourceAllocator *owner, vk::Sampler sampler, const char *debugName)
+ManagedSampler::ManagedSampler(VkResourceAllocator *owner, vk::Sampler sampler, const std::string debugName)
     : m_owner(owner), m_sampler(sampler), m_debugName(debugName)
 {
 }
@@ -285,16 +297,16 @@ vk::ImageUsageFlags VkResourceAllocator::toVkImageUsage(ImageUsageFlags usage) c
     return flags;
 }
 
-void VkResourceAllocator::setDebugName(vk::ObjectType objectType, uint64_t objectHandle, const char *name)
+void VkResourceAllocator::setDebugName(vk::ObjectType objectType, uint64_t objectHandle, std::string name)
 {
-    if (!name || !m_ctx || !m_ctx->m_pfnSetDebugUtilsObjectName)
+    if (name.empty() || !m_ctx || !m_ctx->m_pfnSetDebugUtilsObjectName)
         return;
 
     VkDebugUtilsObjectNameInfoEXT nameInfo{};
     nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
     nameInfo.objectType = static_cast<VkObjectType>(objectType);
     nameInfo.objectHandle = objectHandle;
-    nameInfo.pObjectName = name;
+    nameInfo.pObjectName = name.c_str();
 
     m_ctx->m_pfnSetDebugUtilsObjectName(static_cast<VkDevice>(m_ctx->getDevice()), &nameInfo);
 }
@@ -326,12 +338,12 @@ ManagedBuffer VkResourceAllocator::createBuffer(const BufferDesc &desc)
     vk::Buffer buffer = vkBuffer;
 
     // 设置Debug名称
-    if (desc.debugName)
+    if (!desc.debugName.empty())
     {
         setDebugName(vk::ObjectType::eBuffer, (uint64_t) static_cast<VkBuffer>(buffer), desc.debugName);
     }
 
-    return ManagedBuffer(this, buffer, allocation, desc.size, desc.debugName);
+    return ManagedBuffer{this, buffer, allocation, desc.size, desc.debugName};
 }
 
 void VkResourceAllocator::destroyBuffer(vk::Buffer buffer, VmaAllocation allocation)
@@ -377,7 +389,7 @@ ManagedImage VkResourceAllocator::createImage(const ImageDesc &desc, vk::ImageAs
     vk::Image image = vkImage;
 
     // 设置Debug名称
-    if (desc.debugName)
+    if (!desc.debugName.empty())
     {
         setDebugName(vk::ObjectType::eImage, (uint64_t) static_cast<VkImage>(image), desc.debugName);
     }
@@ -405,12 +417,12 @@ ManagedImage VkResourceAllocator::createImage(const ImageDesc &desc, vk::ImageAs
 
     vk::ImageView view = m_ctx->getDevice().createImageView(viewInfo);
 
-    if (desc.debugName)
+    if (!desc.debugName.empty())
     {
         setDebugName(vk::ObjectType::eImageView, (uint64_t) static_cast<VkImageView>(view), desc.debugName);
     }
 
-    return ManagedImage(this, view, image, allocation, imgInfo.extent, desc.format, aspectMask, desc.debugName);
+    return ManagedImage{this, view, image, allocation, imgInfo.extent, desc.format, aspectMask, desc.debugName};
 }
 
 void VkResourceAllocator::destroyImage(vk::Image image, VmaAllocation allocation)
@@ -424,7 +436,7 @@ void VkResourceAllocator::destroyImage(vk::Image image, VmaAllocation allocation
 ManagedImage VkResourceAllocator::createImageView(const ManagedImage &image, vk::ImageAspectFlags aspectMask,
                                                   uint32_t baseMipLevel, uint32_t levelCount, uint32_t baseArrayLayer,
                                                   uint32_t layerCount, vk::ImageViewType viewType,
-                                                  const char *debugName)
+                                                  const std::string debugName)
 {
     if (!m_ctx)
         throw std::runtime_error("Context not initialized");
@@ -443,13 +455,13 @@ ManagedImage VkResourceAllocator::createImageView(const ManagedImage &image, vk:
 
     vk::ImageView view = m_ctx->getDevice().createImageView(viewInfo);
 
-    if (debugName)
+    if (!debugName.empty())
     {
         setDebugName(vk::ObjectType::eImageView, (uint64_t) static_cast<VkImageView>(view), debugName);
     }
 
-    return ManagedImage(this, view, image.getImage(), nullptr, image.getExtent(), image.getFormat(), aspectMask,
-                        debugName);
+    return ManagedImage{this,       view,     image.getImage(), nullptr, image.getExtent(), image.getFormat(),
+                        aspectMask, debugName};
 }
 
 void VkResourceAllocator::destroyImageView(vk::ImageView view)
@@ -464,7 +476,7 @@ void VkResourceAllocator::destroyImageView(vk::ImageView view)
 
 ManagedSampler VkResourceAllocator::createSampler(vk::Filter magFilter, vk::Filter minFilter,
                                                   vk::SamplerMipmapMode mipmapMode, vk::SamplerAddressMode addressMode,
-                                                  float maxAnisotropy, const char *debugName)
+                                                  float maxAnisotropy, const std::string debugName)
 {
     if (!m_ctx)
         throw std::runtime_error("Context not initialized");
@@ -488,12 +500,12 @@ ManagedSampler VkResourceAllocator::createSampler(vk::Filter magFilter, vk::Filt
 
     vk::Sampler sampler = m_ctx->getDevice().createSampler(samplerInfo);
 
-    if (debugName)
+    if (!debugName.empty())
     {
         setDebugName(vk::ObjectType::eSampler, (uint64_t) static_cast<VkSampler>(sampler), debugName);
     }
 
-    return ManagedSampler(this, sampler, debugName);
+    return ManagedSampler{this, sampler, debugName};
 }
 
 void VkResourceAllocator::destroySampler(vk::Sampler sampler)
